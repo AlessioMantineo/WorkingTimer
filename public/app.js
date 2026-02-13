@@ -45,8 +45,18 @@ const remainingStat = document.getElementById("remainingStat");
 const minimumStat = document.getElementById("minimumStat");
 const weekDaysContainer = document.getElementById("weekDaysContainer");
 
+const cfg = window.APP_CONFIG || {};
+const supabaseUrl = cfg.supabaseUrl || "";
+const supabaseAnonKey = cfg.supabaseAnonKey || "";
+const hasSupabaseConfig =
+  !!supabaseUrl &&
+  !!supabaseAnonKey &&
+  !supabaseUrl.includes("YOUR_PROJECT_REF") &&
+  !supabaseAnonKey.includes("YOUR_SUPABASE_ANON_OR_PUBLISHABLE_KEY");
+
+const supabase = hasSupabaseConfig ? window.supabase.createClient(supabaseUrl, supabaseAnonKey) : null;
+
 let mode = "login";
-let csrfToken = "";
 let currentUser = null;
 let activeEntry = null;
 let ticker = null;
@@ -115,6 +125,23 @@ function isStrongPassword(password) {
   );
 }
 
+function toPublicEntry(row) {
+  const end = row.end_at ? new Date(row.end_at) : null;
+  const start = new Date(row.start_at);
+  const minutes = end ? Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000)) : null;
+  return {
+    id: row.id,
+    startAt: row.start_at,
+    endAt: row.end_at,
+    durationMinutes: minutes,
+  };
+}
+
+function assertConfigured() {
+  if (hasSupabaseConfig) return;
+  throw new Error("Config Supabase mancante: aggiorna public/config.js");
+}
+
 function setMode(nextMode) {
   mode = nextMode;
   tabs.forEach((tab) => {
@@ -151,54 +178,6 @@ function showAuth() {
   authCard.classList.remove("hidden");
   appPanel.classList.add("hidden");
   stopTicker();
-}
-
-async function authRequest(path, method, body) {
-  const headers = { "Content-Type": "application/json" };
-  const upperMethod = method.toUpperCase();
-  if (upperMethod !== "GET" && upperMethod !== "HEAD" && csrfToken) {
-    headers["X-CSRF-Token"] = csrfToken;
-  }
-
-  const response = await fetch(path, {
-    method,
-    headers,
-    credentials: "include",
-    body: body ? JSON.stringify(body) : undefined,
-  });
-
-  let payload = {};
-  try {
-    payload = await response.json();
-  } catch {
-    payload = {};
-  }
-
-  if (!response.ok) throw new Error(payload.error || "Richiesta fallita.");
-  return payload;
-}
-
-async function refreshCsrfToken() {
-  const response = await fetch("/api/auth/csrf", {
-    method: "GET",
-    credentials: "include",
-  });
-  const payload = await response.json();
-  csrfToken = payload.token || "";
-}
-
-async function secureRequest(path, method, body) {
-  if (!csrfToken) await refreshCsrfToken();
-
-  try {
-    return await authRequest(path, method, body);
-  } catch (error) {
-    if (String(error.message).includes("CSRF")) {
-      await refreshCsrfToken();
-      return authRequest(path, method, body);
-    }
-    throw error;
-  }
 }
 
 function startTicker() {
@@ -268,51 +247,112 @@ function indexAdjustmentsByDate(adjustments) {
   return map;
 }
 
+async function fetchCurrentUserProfile() {
+  assertConfigured();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+  if (userError || !user) return null;
+
+  const { data: profile } = await supabase.from("profiles").select("name").eq("id", user.id).single();
+
+  return {
+    id: user.id,
+    email: user.email || "",
+    name: profile?.name || user.user_metadata?.name || "",
+  };
+}
+
 async function fetchActiveStatus() {
-  const payload = await authRequest("/api/timer/status", "GET");
-  activeEntry = payload.activeEntry;
+  assertConfigured();
+  const { data, error } = await supabase
+    .from("work_entries")
+    .select("*")
+    .eq("user_id", currentUser.id)
+    .is("end_at", null)
+    .order("start_at", { ascending: false })
+    .limit(1);
+  if (error) throw error;
+
+  activeEntry = data?.[0] ? toPublicEntry(data[0]) : null;
   updateLivePanel();
 }
 
 async function saveEntryEdit(entryId, startValue, endValue) {
+  assertConfigured();
   const startAt = localInputToIso(startValue);
   const endAt = localInputToIso(endValue);
   if (!startAt || !endAt) throw new Error("Compila ingresso e uscita con un valore valido.");
 
-  await secureRequest(`/api/timer/entries/${entryId}`, "PUT", { startAt, endAt });
+  const { error } = await supabase
+    .from("work_entries")
+    .update({
+      start_at: startAt,
+      end_at: endAt,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", entryId)
+    .eq("user_id", currentUser.id);
+  if (error) throw error;
 }
 
 async function createManualEntry(dayDate, fallbackHours) {
+  assertConfigured();
   const start = new Date(dayDate);
   start.setHours(9, 0, 0, 0);
   const end = new Date(start);
   end.setHours(start.getHours() + fallbackHours, 0, 0, 0);
 
-  await secureRequest("/api/timer/entries", "POST", {
-    startAt: start.toISOString(),
-    endAt: end.toISOString(),
+  const { error } = await supabase.from("work_entries").insert({
+    user_id: currentUser.id,
+    start_at: start.toISOString(),
+    end_at: end.toISOString(),
+    updated_at: new Date().toISOString(),
   });
+  if (error) throw error;
 }
 
 async function saveDayAdjustment(dayDate, dayType, permissionHours, permissionMinutes) {
+  assertConfigured();
   const hours = Number(permissionHours || 0);
   const mins = Number(permissionMinutes || 0);
-  if (!Number.isInteger(hours) || !Number.isInteger(mins)) {
-    throw new Error("Permessi non validi.");
-  }
-  if (hours < 0 || mins < 0 || mins > 59) {
-    throw new Error("Permessi non validi.");
-  }
-  const totalMinutes = hours * 60 + mins;
+  if (!Number.isInteger(hours) || !Number.isInteger(mins)) throw new Error("Permessi non validi.");
+  if (hours < 0 || mins < 0 || mins > 59) throw new Error("Permessi non validi.");
 
-  await secureRequest(`/api/timer/day-adjustments/${dayDate}`, "PUT", {
-    dayType,
-    permissionMinutes: totalMinutes,
-  });
+  const totalMinutes = hours * 60 + mins;
+  const { error } = await supabase.from("day_adjustments").upsert(
+    {
+      user_id: currentUser.id,
+      day_date: dayDate,
+      day_type: dayType,
+      permission_minutes: totalMinutes,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,day_date" }
+  );
+  if (error) throw error;
 }
 
 async function resetDay(dayDate) {
-  await secureRequest(`/api/timer/day/${dayDate}`, "DELETE");
+  assertConfigured();
+  const dayStart = `${dayDate}T00:00:00.000Z`;
+  const next = new Date(`${dayDate}T00:00:00.000Z`);
+  next.setUTCDate(next.getUTCDate() + 1);
+  const nextStart = next.toISOString();
+
+  const [{ error: deleteEntriesError }, { error: deleteAdjustmentError }] = await Promise.all([
+    supabase
+      .from("work_entries")
+      .delete()
+      .eq("user_id", currentUser.id)
+      .gte("start_at", dayStart)
+      .lt("start_at", nextStart),
+    supabase.from("day_adjustments").delete().eq("user_id", currentUser.id).eq("day_date", dayDate),
+  ]);
+
+  if (deleteEntriesError) throw deleteEntriesError;
+  if (deleteAdjustmentError) throw deleteAdjustmentError;
 }
 
 function entryRowTemplate(entry) {
@@ -341,23 +381,52 @@ function dayTypeSelectTemplate(selected) {
   `;
 }
 
+async function fetchEntriesForWeek(fromIso, toIso) {
+  assertConfigured();
+  const { data, error } = await supabase
+    .from("work_entries")
+    .select("*")
+    .eq("user_id", currentUser.id)
+    .lt("start_at", toIso)
+    .or(`end_at.is.null,end_at.gte.${fromIso}`)
+    .order("start_at", { ascending: true });
+
+  if (error) throw error;
+  return (data || []).map(toPublicEntry);
+}
+
+async function fetchAdjustmentsForWeek(fromDay, toDay) {
+  assertConfigured();
+  const { data, error } = await supabase
+    .from("day_adjustments")
+    .select("day_date,day_type,permission_minutes")
+    .eq("user_id", currentUser.id)
+    .gte("day_date", fromDay)
+    .lt("day_date", toDay)
+    .order("day_date", { ascending: true });
+  if (error) throw error;
+
+  return (data || []).map((row) => ({
+    dayDate: row.day_date,
+    dayType: row.day_type,
+    permissionMinutes: row.permission_minutes,
+  }));
+}
+
 async function renderWeek() {
   const weekDays = buildBusinessDays();
   updateWeekHeader();
 
   const fromIso = weekDays[0].toISOString();
   const toIso = addDays(weekDays[0], 5).toISOString();
+  const fromDay = toDateOnly(weekDays[0]);
+  const toDay = toDateOnly(addDays(weekDays[0], 5));
 
-  const [entriesPayload, adjustmentsPayload] = await Promise.all([
-    authRequest(`/api/timer/entries?from=${encodeURIComponent(fromIso)}&to=${encodeURIComponent(toIso)}`, "GET"),
-    authRequest(
-      `/api/timer/day-adjustments?from=${encodeURIComponent(fromIso)}&to=${encodeURIComponent(toIso)}`,
-      "GET"
-    ),
+  const [entries, adjustments] = await Promise.all([
+    fetchEntriesForWeek(fromIso, toIso),
+    fetchAdjustmentsForWeek(fromDay, toDay),
   ]);
 
-  const entries = entriesPayload.entries || [];
-  const adjustments = adjustmentsPayload.adjustments || [];
   const groupedEntries = groupEntriesByLocalDate(entries);
   const adjustmentsByDate = indexAdjustmentsByDate(adjustments);
 
@@ -383,7 +452,6 @@ async function renderWeek() {
       entries: dayEntries,
       workedMinutes,
       adjustment,
-      extraDayTypeCredit,
       effectiveMinutes,
     };
   });
@@ -549,18 +617,33 @@ authForm.addEventListener("submit", async (event) => {
   submitBtn.textContent = mode === "register" ? "Creo..." : "Accesso...";
 
   try {
-    if (mode === "register" && !name) {
-      showMessage("Inserisci il nome per registrarti.", "error");
-      return;
+    assertConfigured();
+
+    if (mode === "register") {
+      if (!name) throw new Error("Inserisci il nome per registrarti.");
+      const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { name } },
+      });
+      if (signUpError) throw signUpError;
+
+      if (!signUpData.session) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) throw signInError;
+      }
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
     }
 
-    const endpoint = mode === "register" ? "/api/auth/register" : "/api/auth/login";
-    const payload = await secureRequest(endpoint, "POST", { name, email, password });
-    showMessage(payload.message || "Operazione completata.", "success");
-    showApp(payload.user);
+    const user = await fetchCurrentUserProfile();
+    if (!user) throw new Error("Impossibile recuperare profilo utente.");
+    showMessage("Accesso completato.", "success");
+    showApp(user);
     await refreshWorkingTimerUI();
   } catch (error) {
-    showMessage(error.message, "error");
+    showMessage(error.message || "Errore autenticazione.", "error");
   } finally {
     submitBtn.disabled = false;
     submitBtn.textContent = mode === "register" ? "Crea account" : "Entra";
@@ -569,7 +652,9 @@ authForm.addEventListener("submit", async (event) => {
 
 logoutBtn.addEventListener("click", async () => {
   try {
-    await secureRequest("/api/auth/logout", "POST");
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
   } catch {
     // no-op
   }
@@ -583,7 +668,25 @@ logoutBtn.addEventListener("click", async () => {
 startWorkBtn.addEventListener("click", async () => {
   startWorkBtn.disabled = true;
   try {
-    await secureRequest("/api/timer/start", "POST");
+    assertConfigured();
+    const { data: activeRows, error: activeError } = await supabase
+      .from("work_entries")
+      .select("id")
+      .eq("user_id", currentUser.id)
+      .is("end_at", null)
+      .limit(1);
+    if (activeError) throw activeError;
+    if (activeRows?.length) throw new Error("Hai gia' un timer attivo.");
+
+    const now = new Date().toISOString();
+    const { error } = await supabase.from("work_entries").insert({
+      user_id: currentUser.id,
+      start_at: now,
+      end_at: null,
+      updated_at: now,
+    });
+    if (error) throw error;
+
     await refreshWorkingTimerUI();
   } catch (error) {
     alert(error.message);
@@ -594,7 +697,25 @@ startWorkBtn.addEventListener("click", async () => {
 stopWorkBtn.addEventListener("click", async () => {
   stopWorkBtn.disabled = true;
   try {
-    await secureRequest("/api/timer/stop", "POST");
+    assertConfigured();
+    const { data: rows, error: fetchError } = await supabase
+      .from("work_entries")
+      .select("id,start_at")
+      .eq("user_id", currentUser.id)
+      .is("end_at", null)
+      .order("start_at", { ascending: false })
+      .limit(1);
+    if (fetchError) throw fetchError;
+    if (!rows?.length) throw new Error("Nessun timer attivo da chiudere.");
+
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from("work_entries")
+      .update({ end_at: now, updated_at: now })
+      .eq("id", rows[0].id)
+      .eq("user_id", currentUser.id);
+    if (error) throw error;
+
     await refreshWorkingTimerUI();
   } catch (error) {
     alert(error.message);
@@ -625,10 +746,20 @@ currentWeekBtn.addEventListener("click", async () => {
 window.addEventListener("DOMContentLoaded", async () => {
   setMode("login");
 
+  if (!hasSupabaseConfig) {
+    showMessage("Config Supabase mancante in public/config.js", "error");
+    showAuth();
+    return;
+  }
+
   try {
-    await refreshCsrfToken();
-    const payload = await authRequest("/api/auth/me", "GET");
-    showApp(payload.user);
+    const user = await fetchCurrentUserProfile();
+    if (!user) {
+      showAuth();
+      return;
+    }
+
+    showApp(user);
     await refreshWorkingTimerUI();
   } catch {
     showAuth();
