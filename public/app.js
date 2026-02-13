@@ -1,3 +1,4 @@
+(() => {
 const WEEK_TARGET_MINUTES = 38 * 60;
 const DAILY_MINIMUM_MINUTES = 4 * 60;
 const DAILY_TARGET_BY_WEEKDAY = {
@@ -777,3 +778,4 @@ window.addEventListener("DOMContentLoaded", async () => {
     showAuth();
   }
 });
+})();
