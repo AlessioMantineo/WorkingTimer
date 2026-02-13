@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>App-test | Work Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Sora:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bg-orb orb-a" aria-hidden="true"></div>
+    <div class="bg-orb orb-b" aria-hidden="true"></div>
+    <div class="bg-grid" aria-hidden="true"></div>
+
+    <main class="app-shell">
+      <section class="auth-card" id="authCard">
+        <header class="brand">
+          <p class="eyebrow">App-test</p>
+          <h1>Accesso Smart Multi Device</h1>
+          <p class="subtitle">
+            Entra dal telefono o dal PC: interfaccia veloce, pulita e pronta al deploy.
+          </p>
+        </header>
+
+        <div class="auth-tabs" role="tablist" aria-label="Login o Registrazione">
+          <button class="tab active" data-mode="login" role="tab" aria-selected="true">Login</button>
+          <button class="tab" data-mode="register" role="tab" aria-selected="false">Register</button>
+        </div>
+
+        <form id="authForm" class="auth-form" novalidate>
+          <label class="field" id="nameField">
+            <span>Nome</span>
+            <input type="text" id="name" placeholder="Es. Alessio" autocomplete="name" />
+          </label>
+
+          <label class="field">
+            <span>Email</span>
+            <input
+              type="email"
+              id="email"
+              placeholder="nome@email.com"
+              autocomplete="email"
+              required
+            />
+          </label>
+
+          <label class="field">
+            <span>Password</span>
+            <input
+              type="password"
+              id="password"
+              placeholder="Min 8, maiusc/minusc + numero"
+              autocomplete="current-password"
+              required
+              minlength="8"
+            />
+          </label>
+
+          <p id="formMessage" class="form-message" aria-live="polite"></p>
+          <button type="submit" id="submitBtn">Entra</button>
+        </form>
+      </section>
+
+      <section class="app-panel hidden" id="appPanel" aria-live="polite">
+        <header class="app-header">
+          <div>
+            <p class="eyebrow">Workspace</p>
+            <h2 id="welcomeTitle">Ciao!</h2>
+            <p id="welcomeText" class="subtitle compact"></p>
+          </div>
+          <button id="logoutBtn" class="ghost-btn">Logout</button>
+        </header>
+
+        <section class="menu-section">
+          <p class="section-label">Menu</p>
+          <div class="menu-grid">
+            <button class="menu-tile active" id="openWorkingTimerBtn">
+              <span class="menu-title">Working Timer</span>
+              <span class="menu-desc">Traccia ingressi, uscite e ore settimanali</span>
+            </button>
+            <button class="menu-tile disabled" disabled>
+              <span class="menu-title">Prossima funzione</span>
+              <span class="menu-desc">Spazio pronto per i moduli futuri</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="module-card" id="workingTimerModule">
+          <header class="module-header">
+            <div>
+              <p class="section-label">Working Timer</p>
+              <h3>Controllo ore della settimana</h3>
+            </div>
+            <div class="week-nav">
+              <button id="prevWeekBtn" class="ghost-btn mini">Settimana -</button>
+              <button id="currentWeekBtn" class="ghost-btn mini">Questa</button>
+              <button id="nextWeekBtn" class="ghost-btn mini">Settimana +</button>
+            </div>
+          </header>
+
+          <p id="weekRangeLabel" class="muted-line"></p>
+
+          <div class="timer-live-card">
+            <p id="timerStatusText" class="section-label">Fuori dal lavoro</p>
+            <p id="liveTimerValue" class="live-clock">00:00:00</p>
+            <div class="timer-actions">
+              <button id="startWorkBtn">Sono entrato</button>
+              <button id="stopWorkBtn" class="ghost-btn">Sono uscito</button>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <article class="stat-card">
+              <span>Obiettivo settimanale</span>
+              <strong id="weeklyTargetStat">38h 00m</strong>
+            </article>
+            <article class="stat-card">
+              <span>Ore lavorate</span>
+              <strong id="workedStat">0h 00m</strong>
+            </article>
+            <article class="stat-card">
+              <span>Ore mancanti</span>
+              <strong id="remainingStat">38h 00m</strong>
+            </article>
+            <article class="stat-card">
+              <span>Giorni sotto minimo (4h)</span>
+              <strong id="minimumStat">0</strong>
+            </article>
+          </div>
+
+          <div id="weekDaysContainer" class="week-days"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

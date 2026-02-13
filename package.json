@@ -1,0 +1,25 @@
+{
+  "name": "app-test",
+  "version": "1.0.0",
+  "description": "Mini app con frontend + backend auth",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check public/app.js",
+    "test:smoke": "node smoke-test.js",
+    "gen:secret": "node -e \"console.log(require('node:crypto').randomBytes(48).toString('hex'))\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.6.2",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.2.4",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3"
+  }
+}
