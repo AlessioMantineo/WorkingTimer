@@ -79,7 +79,7 @@ Ogni volta:
 - Se spegni il PC, l'app non e' raggiungibile.
 - L'URL cambia a ogni avvio (quick tunnel).
 
-Se vuoi URL fisso + sempre online, nel prossimo step ti preparo migrazione a hosting gestito.
+
 
 ## Test rapidi
 
