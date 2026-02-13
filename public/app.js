@@ -53,8 +53,11 @@ const hasSupabaseConfig =
   !!supabaseAnonKey &&
   !supabaseUrl.includes("YOUR_PROJECT_REF") &&
   !supabaseAnonKey.includes("YOUR_SUPABASE_ANON_OR_PUBLISHABLE_KEY");
-
-const supabase = hasSupabaseConfig ? window.supabase.createClient(supabaseUrl, supabaseAnonKey) : null;
+const hasSupabaseRuntime = !!(window.supabase && typeof window.supabase.createClient === "function");
+const supabase =
+  hasSupabaseConfig && hasSupabaseRuntime
+    ? window.supabase.createClient(supabaseUrl, supabaseAnonKey)
+    : null;
 
 let mode = "login";
 let currentUser = null;
@@ -138,8 +141,12 @@ function toPublicEntry(row) {
 }
 
 function assertConfigured() {
-  if (hasSupabaseConfig) return;
-  throw new Error("Config Supabase mancante: aggiorna public/config.js");
+  if (!hasSupabaseConfig) {
+    throw new Error("Config Supabase mancante: aggiorna public/config.js");
+  }
+  if (!hasSupabaseRuntime) {
+    throw new Error("SDK Supabase non caricato. Ricarica la pagina o disattiva blocchi script.");
+  }
 }
 
 function setMode(nextMode) {
@@ -748,6 +755,11 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   if (!hasSupabaseConfig) {
     showMessage("Config Supabase mancante in public/config.js", "error");
+    showAuth();
+    return;
+  }
+  if (!hasSupabaseRuntime) {
+    showMessage("SDK Supabase non caricato (controlla connessione o adblock).", "error");
     showAuth();
     return;
   }

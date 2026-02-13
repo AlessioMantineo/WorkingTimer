@@ -28,8 +28,8 @@
         </header>
 
         <div class="auth-tabs" role="tablist" aria-label="Login o Registrazione">
-          <button class="tab active" data-mode="login" role="tab" aria-selected="true">Login</button>
-          <button class="tab" data-mode="register" role="tab" aria-selected="false">Register</button>
+          <button type="button" class="tab active" data-mode="login" role="tab" aria-selected="true">Login</button>
+          <button type="button" class="tab" data-mode="register" role="tab" aria-selected="false">Register</button>
         </div>
 
         <form id="authForm" class="auth-form" novalidate>
@@ -79,11 +79,11 @@
         <section class="menu-section">
           <p class="section-label">Menu</p>
           <div class="menu-grid">
-            <button class="menu-tile active" id="openWorkingTimerBtn">
+            <button type="button" class="menu-tile active" id="openWorkingTimerBtn">
               <span class="menu-title">Working Timer</span>
               <span class="menu-desc">Traccia ingressi, uscite e ore settimanali</span>
             </button>
-            <button class="menu-tile disabled" disabled>
+            <button type="button" class="menu-tile disabled" disabled>
               <span class="menu-title">Prossima funzione</span>
               <span class="menu-desc">Spazio pronto per i moduli futuri</span>
             </button>
@@ -97,9 +97,9 @@
               <h3>Controllo ore della settimana</h3>
             </div>
             <div class="week-nav">
-              <button id="prevWeekBtn" class="ghost-btn mini">Settimana -</button>
-              <button id="currentWeekBtn" class="ghost-btn mini">Questa</button>
-              <button id="nextWeekBtn" class="ghost-btn mini">Settimana +</button>
+              <button type="button" id="prevWeekBtn" class="ghost-btn mini">Settimana -</button>
+              <button type="button" id="currentWeekBtn" class="ghost-btn mini">Questa</button>
+              <button type="button" id="nextWeekBtn" class="ghost-btn mini">Settimana +</button>
             </div>
           </header>
 
@@ -109,8 +109,8 @@
             <p id="timerStatusText" class="section-label">Fuori dal lavoro</p>
             <p id="liveTimerValue" class="live-clock">00:00:00</p>
             <div class="timer-actions">
-              <button id="startWorkBtn">Sono entrato</button>
-              <button id="stopWorkBtn" class="ghost-btn">Sono uscito</button>
+              <button type="button" id="startWorkBtn">Sono entrato</button>
+              <button type="button" id="stopWorkBtn" class="ghost-btn">Sono uscito</button>
             </div>
           </div>
 
