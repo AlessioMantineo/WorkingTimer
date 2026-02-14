@@ -107,6 +107,17 @@ body {
   line-height: 1.1;
 }
 
+.pi-title {
+  margin: 0 0 0.2rem;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: linear-gradient(92deg, #ffd84d 0%, #ffd84d 35%, #1f63ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
 .subtitle {
   margin: 0.2rem 0 1rem;
   color: var(--muted);
@@ -382,7 +393,9 @@ button[type="submit"],
 }
 
 .day-card.today {
-  border-color: rgba(18, 214, 166, 0.6);
+  border-color: rgba(31, 99, 255, 0.8);
+  background: linear-gradient(145deg, rgba(255, 216, 77, 0.14), rgba(31, 99, 255, 0.2));
+  box-shadow: 0 0 0 1px rgba(31, 99, 255, 0.24), 0 10px 24px rgba(0, 0, 0, 0.25);
 }
 
 .day-card header h4 {

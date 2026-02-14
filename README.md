@@ -27,6 +27,28 @@ Devi avere create le tabelle:
 
 con RLS attivo e policy per utente (`auth.uid()`).
 
+Per login con `username` (oltre a email), aggiungi:
+
+```sql
+alter table public.profiles
+  add column if not exists username text unique,
+  add column if not exists email_login text;
+
+create or replace function public.get_email_by_username(p_username text)
+returns text
+language sql
+security definer
+set search_path = public
+as $$
+  select email_login
+  from public.profiles
+  where lower(username) = lower(p_username)
+  limit 1;
+$$;
+
+grant execute on function public.get_email_by_username(text) to anon, authenticated;
+```
+
 ## Netlify
 
 Impostazioni corrette:

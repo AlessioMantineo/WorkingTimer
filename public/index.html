@@ -3,6 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b0f1a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="WorkingTimer" />
     <title>App-test | Work Hub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -10,6 +14,9 @@
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Sora:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
+    <link rel="manifest" href="./site.webmanifest" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -20,6 +27,7 @@
     <main class="app-shell">
       <section class="auth-card" id="authCard">
         <header class="brand">
+          <p class="pi-title">Posteitaliane</p>
           <p class="eyebrow">App-test</p>
           <h1>Accesso Smart Multi Device</h1>
           <p class="subtitle">
@@ -38,13 +46,18 @@
             <input type="text" id="name" placeholder="Es. Alessio" autocomplete="name" />
           </label>
 
+          <label class="field hidden" id="usernameField">
+            <span>Username</span>
+            <input type="text" id="username" placeholder="es. alessio89" autocomplete="username" />
+          </label>
+
           <label class="field">
-            <span>Email</span>
+            <span id="identifierLabel">Username o Email</span>
             <input
-              type="email"
-              id="email"
-              placeholder="nome@email.com"
-              autocomplete="email"
+              type="text"
+              id="identifier"
+              placeholder="username o nome@email.com"
+              autocomplete="username"
               required
             />
           </label>
@@ -69,6 +82,7 @@
       <section class="app-panel hidden" id="appPanel" aria-live="polite">
         <header class="app-header">
           <div>
+            <p class="pi-title">Posteitaliane</p>
             <p class="eyebrow">Workspace</p>
             <h2 id="welcomeTitle">Ciao!</h2>
             <p id="welcomeText" class="subtitle compact"></p>
